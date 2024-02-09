@@ -5,7 +5,9 @@ SERVER_BIN = $(BUILD_DIR)/server
 
 LIBS = libsystemd
 
-CFLAGS += -std=gnu99 -Wall -Wextra
+CFLAGS += -std=gnu99 -Wall -Wextra -g
+LDFLAGS += -lpthread
+
 CFLAGS += $(foreach lib, $(LIBS), $(shell pkg-config --cflags $(lib))) 
 LDFLAGS += $(foreach lib, $(LIBS), $(shell pkg-config --libs $(lib)))
 
