@@ -7,7 +7,6 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <stdint.h>
 
 #include <unistd.h>
 #include <fcntl.h>
@@ -17,6 +16,7 @@
 #include <sys/stat.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 
 #define _(str) str
 #define REQUEST_BUFFER_SIZE 65536
@@ -95,6 +95,8 @@ static void* server_handle_clients(void* attr) {
     assert(attr != NULL);
     server_t* server = attr;
 
+    char inet_buf[INET6_ADDRSTRLEN];
+
     while(1) {
         struct sockaddr_in client_addr;
         socklen_t client_len = sizeof client_addr;
@@ -104,7 +106,16 @@ static void* server_handle_clients(void* attr) {
             fprintf(stderr, "Failed to accept client: %s\n", strerror(errno));
             continue;
         }
-        
+
+        inet_ntop(
+            client_addr.sin_family,
+            client_addr.sin_family == AF_INET ? (void*) &(((struct sockaddr_in*) &client_addr)->sin_addr) : (void*) &(((struct sockaddr_in6*) &client_addr)->sin6_addr),
+            inet_buf,
+            sizeof inet_buf - 1
+        );
+
+        fprintf(stdout, "Info: Connection from: %s\n", inet_buf);
+
         handle_request(server, client_fd);
 
         close(client_fd);
@@ -124,7 +135,7 @@ static void handle_request(const server_t* server, int fd) {
         handle_http_get(server, fd, request);
     }
     else
-        fprintf(stderr, "Unhandled request: %s\n", request);
+        fprintf(stderr, "Error: Unhandled request: %s\n", request);
 }
 
 static int respond_404(int fd) {
@@ -153,16 +164,15 @@ static void handle_http_get(const server_t* server, int fd, char* request) {
     request[matches[1].rm_eo] = '\0';
     const char* url_encoded_filename = request + matches[1].rm_so;
 
-    char* filepath = malloc((1024 + strlen(url_encoded_filename) + 2) * sizeof(char));
+    size_t filepath_size = 1024 + strlen(url_encoded_filename);
+    char* filepath = malloc(filepath_size * sizeof(char));
 
     memcpy(filepath, server->root, strlen(server->root) + 1);
     strcat(filepath, "/");
-    if(strlen(url_encoded_filename) == 0)
-        strcat(filepath, "index.html");
-    else
-        url_decode(filepath + strlen(filepath), url_encoded_filename);
+    url_decode(filepath + strlen(filepath), url_encoded_filename);
 
-    printf("%s\n", filepath);
+retry_open:
+    ;
 
     int file_fd = open(filepath, O_RDONLY);
     if(file_fd == -1) {
@@ -172,6 +182,13 @@ static void handle_http_get(const server_t* server, int fd, char* request) {
 
     struct stat file_stat;
     fstat(file_fd, &file_stat);
+
+    if(S_ISDIR(file_stat.st_mode))
+    {
+        close(file_fd);
+        strncat(filepath, "/index.html", filepath_size);
+        goto retry_open;
+    }
 
     const char* mime_type = get_mime_type(filepath);
     
@@ -188,7 +205,8 @@ static void handle_http_get(const server_t* server, int fd, char* request) {
     size_t bytes_read = read(file_fd, response + header_size, response_size - header_size);
 
     send(fd, response, header_size + bytes_read, 0);
-    
+
+    close(fd);
     free(response);
 finish:
     regfree(&regex);

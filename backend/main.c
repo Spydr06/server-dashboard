@@ -1,3 +1,4 @@
+#include "resources.h"
 #include "server.h"
 #include <errno.h>
 #include <pthread.h>
@@ -11,6 +12,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <signal.h>
+#include <unistd.h>
 
 #define DEFAULT_PORT 6969
 
@@ -77,20 +79,33 @@ Try `%s --help` for more information.\n"), argv[0], ch, argv[0]);
         goto finish;
 
 
-    sigset_t sigset, original;
+    sigset_t sigset;
     sigemptyset(&sigset);
     sigaddset(&sigset, SIGINT);
 
     int ret;
-    if((ret = sigprocmask(SIG_BLOCK, &sigset, &original)) == -1) {
+    if((ret = sigprocmask(SIG_BLOCK, &sigset, NULL)) == -1) {
         fprintf(stderr, "Error blocking SIGINT: %s\n", strerror(errno));
         goto finish;
     }
 
-    int signum;
-    if((ret = sigwait(&sigset, &signum)) == -1) {
-        fprintf(stderr, "Error waiting for SIGINT: %s\n", strerror(errno));
-        goto finish;
+    resources_t resources;
+    memset(&resources, 0, sizeof(resources_t));
+
+    while(1) {
+    //    fetch_resources(&resources);
+    //    dbg_print_resources(&resources);
+
+        sigset_t pending;
+        if((ret = sigpending(&pending)) == -1) {
+            fprintf(stderr, "Error getting pending signals: %s\n", strerror(errno));
+            goto finish;
+        }
+
+        if(sigismember(&pending, SIGINT))
+            break;
+        
+        sleep(1);
     }
 
 finish:

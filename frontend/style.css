@@ -1,0 +1,39 @@
+:root {
+    --bg-color: rgba(17, 17, 27, 0.9);
+    --border-color: rgba(30, 30, 46, 1.0);
+    --text-color: rgba(205, 214, 244, 1.0);
+}
+
+#background {
+    background-image: url('img/background.webp');
+    background-repeat: no-repeat;
+    background-size: 100%;
+}
+
+.fullsize {
+    height: 100%;
+    width: 100%;
+    position: fixed;
+    left: 0px;
+    top: 0px;
+}
+
+.widget {
+    background: transparent;
+    background-color: var(--bg-color);
+    border-radius: 6px;
+    border-width: 1px;
+    border-style: solid;
+    border-color: var(--border-color);
+    margin: 10px;
+    padding: 10px;
+}
+
+.widget-title, .widget-content {
+    color: var(--text-color);
+}
+
+.widgets-container {
+    display: grid;
+}
+

@@ -1,6 +1,11 @@
 build/
+.cache/
+
 *.o
 *.a
 *.so
 *.out
-
+*.d
+compile_commands.json
+*.wasm
+vgcore.*

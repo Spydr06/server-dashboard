@@ -17,3 +17,4 @@ frontend: $(BUILD_DIR)
 .PHONY:
 clean:
 	rm -rf $(BUILD_DIR)
+	$(MAKE) -C frontend clean
