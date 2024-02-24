@@ -5,6 +5,18 @@
 
 static widget_t widgets[] = {
     {
+        "Greeting",
+        WCLASS_QUICKSETTING,
+        CONTENT_LABEL,
+        {}
+    },
+    {
+        "Weather",
+        WCLASS_QUICKSETTING,
+        CONTENT_LABEL,
+        {}
+    },
+    {
         "Power Options",
         WCLASS_QUICKSETTING,
         CONTENT_LABEL,

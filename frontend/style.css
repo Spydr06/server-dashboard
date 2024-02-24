@@ -94,14 +94,13 @@ body {
     padding-top: 2em;
     padding-left: 10%;
     padding-right: 10%;
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
+    display: inline-flex;
     width: 80%;
 }
 
 .widget-service-content {
     display: grid;
-    grid-template-columns: auto var(--status-icon-size);
+    grid-template-columns: auto calc(var(--status-icon-size) + 4px);
     width: 100%;
 }
 
@@ -124,7 +123,10 @@ body {
 }
 
 .status-icon {
-    border-radius: calc(var(--status-icon-size) / 2);
+    border-radius: calc(var(--status-icon-size) / 2 + 2px);
+    border-width: 2px;
+    border-style: solid;
+    border-color: var(--border-color);
     width: var(--status-icon-size);
     height: var(--status-icon-size);
     vertical-align: middle;
