@@ -1,13 +1,30 @@
 :root {
     --bg-color: rgba(17, 17, 27, 0.9);
     --border-color: rgba(30, 30, 46, 1.0);
+    --separator-color: rgba(48, 52, 70, 1.0);
+
     --text-color: rgba(205, 214, 244, 1.0);
+    --grey-text-color: rgba(108, 111, 133, 1.0);
+
+    --service-unknown: rgba(136, 57, 239, 1.0);
+    --service-up: rgba(64, 160, 43, 1.0);
+    --service-down: rgba(230, 69, 83, 1.0);
+
+    --outer-padding: 16px;
+    --widget-padding: 10px;
+    --widget-margin: 10px;
+
+    --status-icon-size: 24px;
+}
+
+body {
+    font-family: Roboto;
 }
 
 #background {
-    background-image: url('img/background.webp');
+    background-image: url('res/background.webp');
     background-repeat: no-repeat;
-    background-size: 100%;
+    background-size: cover;
 }
 
 .fullsize {
@@ -21,19 +38,107 @@
 .widget {
     background: transparent;
     background-color: var(--bg-color);
+
     border-radius: 6px;
-    border-width: 1px;
+    border-width: 2px;
     border-style: solid;
     border-color: var(--border-color);
-    margin: 10px;
-    padding: 10px;
+    
+    width: calc(100% - var(--outer-padding) * 2 - var(--widget-margin));
+}
+
+.widget-quicksetting {
+    margin: var(--widget-margin);
+    padding: var(--widget-padding);
+}
+
+.widget-generic {
+    margin: var(--widget-margin);
+    padding: var(--widget-padding);
+}
+
+.widget-service {
+    margin: var(--widget-margin);
+    padding: var(--widget-padding);
+    display: grid;
+    grid-template-columns: auto 1fr;
 }
 
 .widget-title, .widget-content {
     color: var(--text-color);
 }
 
-.widgets-container {
-    display: grid;
+#widgets-container {
+    margin: 0;
+    position: absolute;
+    top: 50%;
+    width: 100%;
+    transform: translateY(-50%);
 }
 
+#quicksetting-widget-container {
+    padding-bottom: 2em;
+    padding-left: 10%;
+    padding-right: 10%;
+    display: inline-flex;
+    width: 80%;
+}
+
+#generic-widget-container {
+    padding: var(--outer-padding);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+}
+
+#service-widget-container {
+    padding-top: 2em;
+    padding-left: 10%;
+    padding-right: 10%;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    width: 80%;
+}
+
+.widget-service-content {
+    display: grid;
+    grid-template-columns: auto var(--status-icon-size);
+    width: 100%;
+}
+
+.service-status-labels {
+    margin-left: 10px;
+    padding-left: 10px;
+    
+    border-left-color: var(--separator-color);
+    border-left-style: solid;
+    border-left-width: 2px;
+
+
+    color: var(--grey-text-color);
+    font-family: Roboto Mono;
+    
+    display: grid;
+    grid-template-columns: auto 1fr;
+    column-gap: 10px;
+    align-self: center;
+}
+
+.status-icon {
+    border-radius: calc(var(--status-icon-size) / 2);
+    width: var(--status-icon-size);
+    height: var(--status-icon-size);
+    vertical-align: middle;
+    align-self: center;
+}
+
+.status-up {
+    background-color: var(--service-up);
+}
+
+.status-down {
+    background-color: var(--service-down);
+}
+
+.status-unknown {
+    background-color: var(--service-unknown);
+}

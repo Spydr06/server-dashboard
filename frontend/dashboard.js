@@ -11,10 +11,14 @@ const makeEnv = (env) => new Proxy(env, {
     }
 });
 
+const widgetClasses = [
+    { cssClass: 'widget-generic', container: 'generic-widget-container' },
+    { cssClass: 'widget-quicksetting', container: 'quicksetting-widget-container' },
+    { cssClass: 'widget-service', container: 'service-widget-container' },
+];
+
 class Dashboard {
     constructor() {
-        this.widgetsContainer = document.getElementById('widgets-container'); 
-        this.currentWidget = undefined;
     }
 
     async start(wasm_file) {
@@ -25,25 +29,27 @@ class Dashboard {
         return this;
     }
 
-    begin_widget(titlePtr, titleLen) {
-        if(this.currentWidget !== undefined)
-            throw new Error(`WIDGET ${this.currentWidget.title} IS STILL ACTIVE.`);
-
-        const buffer = this.wasm.instance.exports.memory.buffer;
-        this.currentWidget = {
-            title: decodeCStr(buffer, titlePtr, titleLen),
-            element: document.createElement('div') 
-        };
-
-        this.currentWidget.element.classList.add('widget');
-        this.currentWidget.element.innerHTML = `<b class='widget-title'>${this.currentWidget.title}</b>`
-
-        console.log(this.currentWidget);
+    newWidgetElement(id, title, widgetClass) {
+        let el = document.createElement('div');
+        el.classList.add('widget');
+        el.classList.add(widgetClasses[widgetClass].cssClass);
+        el.id = `widget-${id}`;
+        el.innerHTML = `<b class='widget-title'>${title}</b><div id='widget-content-${id}' class='widget-content ${widgetClasses[widgetClass].cssClass}-content'></div>`;
+        return el;
     }
 
-    end_widget() {
-        this.widgetsContainer.appendChild(this.currentWidget.element);
-        this.currentWidget = undefined;
+    create_widget(id, titlePtr, titleLen, widgetClass) {
+        const buffer = this.wasm.instance.exports.memory.buffer; 
+        document.getElementById(widgetClasses[widgetClass].container).appendChild(this.newWidgetElement(id, decodeCStr(buffer, titlePtr, titleLen), widgetClass))
+    }
+
+    update_widget_content(id, htmlPtr, htmlLen) {
+        const content = document.getElementById(`widget-content-${id}`);
+        if(content === null)
+            throw new Error(`No widget with id ${id}.`);
+
+        const buffer = this.wasm.instance.exports.memory.buffer;
+        content.innerHTML = decodeCStr(buffer, htmlPtr, htmlLen);
     }
 }
 
