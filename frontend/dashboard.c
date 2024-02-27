@@ -1,72 +1,93 @@
 #include "dashboard.h"
 
-#define SERVICE_WIDGET(name, html_id, service) \
-    { (name), "widget-service-" html_id, WCLASS_SERVICE, CONTENT_SERVICE_STATUS, { .content_service = { (service), 0.0, 0, SERVICE_STATUS_UNKNOWN } } }
+#define SERVICE_WIDGET(name, html_id, _service) {                   \
+    (name), "widget-service-" html_id,                              \
+    WCLASS_SERVICE, generate_service_widget,                        \
+    CONTENT_SERVICE_STATUS,                                         \
+    { .service = { (_service), 0.0, 0, SERVICE_STATUS_UNKNOWN } }   \
+}
+
+#define LABEL_WIDGET(name, html_id, wclass, _label) {   \
+    (name), "widget-" html_id,                          \
+    WCLASS_##wclass, generate_label_widget,             \
+    CONTENT_LABEL,                                      \
+    { .label = { _label } }                             \
+}
+
+static void generate_service_widget(const widget_t* widget, char** buf, size_t* buf_len);
+static void generate_label_widget(const widget_t* widget, char** buf, size_t* buf_len);
+static void generate_graph_widget(const widget_t* widget, char** buf, size_t* buf_len);
+
 
 static widget_t widgets[] = {
     {
         "Greeting", "widget-greeting",
         WCLASS_QUICKSETTING,
+        NULL,
         CONTENT_LABEL,
         {}
     },
     {
         "Weather", "widget-weather",
         WCLASS_QUICKSETTING,
+        NULL,
         CONTENT_LABEL,
         {}
     },
     {
         "Power Options", "widget-power-opt",
         WCLASS_QUICKSETTING,
+        NULL,
         CONTENT_LABEL,
         {}
     },
-    { 
-        "Uptime", "widget-uptime",
-        WCLASS_QUICKSETTING,
-        CONTENT_LABEL,
-        {}
-    },
+    LABEL_WIDGET("Uptime", "uptime", QUICKSETTING, "00d 00:00h"),
     {
         "Ping", "widget-ping",
         WCLASS_GENERIC,
+        NULL,
         CONTENT_GRAPH,
         {}
     },
     {
         "Processor Usage", "widget-cpu-usage",
         WCLASS_GENERIC,
+        NULL,
         CONTENT_GRAPH,
         {}
     },
     {
         "Memory Usage", "widget-mem-usage",
         WCLASS_GENERIC,
+        NULL,
         CONTENT_GRAPH,
         {}
     },
     {
         "Disk Usage", "widget-disk-usage",
         WCLASS_GENERIC,
+        NULL,
         CONTENT_GRAPH,
         {}
     },
     {
         "Swap Usage", "widget-swap-usage",
         WCLASS_GENERIC,
+        NULL,
         CONTENT_GRAPH,
         {}
     },
     {
         "TCP Connections", "widget-tcp",
         WCLASS_GENERIC,
+        NULL,
         CONTENT_GRAPH,
         {}
     },
     {
         "UDP Connections", "widget-udp",
         WCLASS_GENERIC,
+        NULL,
         CONTENT_GRAPH,
         {}
     },
@@ -87,59 +108,48 @@ static const char* const wclass_css_class[__WCLASS_NUM] = {
     [WCLASS_QUICKSETTING] = "widget-quicksetting"
 };
 
-#define CONCAT(buf, str, buf_len) do {              \
-        char* s = stpncpy((buf), (str), (buf_len)); \
-        (buf_len) -= s - (buf);                     \
-        (buf) = s;                                  \
-    } while(0)
+static const char* const service_status_css_class[__SERVICE_STATUS_NUM] = {
+    [SERVICE_STATUS_DOWN] = "status-down",
+    [SERVICE_STATUS_UP] = "status-up",
+    [SERVICE_STATUS_UNKNOWN] = "status-unknown"
+};
 
 static void create_widget(const widget_t* widget, char* buf, size_t buf_len)
 {
-    CONCAT(buf, "<div class='widget ", buf_len);
-    CONCAT(buf, wclass_css_class[widget->class], buf_len);
-    CONCAT(buf, "' id='", buf_len);
-    CONCAT(buf, widget->html_id, buf_len);
-    CONCAT(buf, "'><b class='widget-title'>", buf_len);
-    CONCAT(buf, widget->title, buf_len);
-    CONCAT(buf, "</b><div id='", buf_len);
-    CONCAT(buf, widget->html_id, buf_len);
-    CONCAT(buf, "-content' class='widget-content ", buf_len);
-    CONCAT(buf, wclass_css_class[widget->class], buf_len);
-    CONCAT(buf, "-content'>", buf_len);
+    CONCAT_ALL(buf, buf_len,
+        "<div class='widget ", wclass_css_class[widget->class], "' id='", widget->html_id, "'>"
+        "<b class='widget-title'>", widget->title, "</b>"
+        "<div id='", widget->html_id, "-content' class='widget-content ", wclass_css_class[widget->class], "-content'>"
+    );
 
-    switch(widget->content_type)
-    {
-    case CONTENT_GRAPH:
-        break;
-    case CONTENT_LABEL:
-        break;
-    case CONTENT_SERVICE_STATUS:
-        CONCAT(buf, "<div class='service-status-labels'><label>cpu time:</label><b>0 ms</b><label>memory:</label><b>0 B</b></div><div class='", buf_len);
-        switch(widget->content_service.status)
-        {
-        case SERVICE_STATUS_UP:
-            CONCAT(buf, "status-up", buf_len);
-            break;
-        case SERVICE_STATUS_DOWN:
-            CONCAT(buf, "status-down", buf_len);
-            break;
-        case SERVICE_STATUS_UNKNOWN:
-            CONCAT(buf, "status-unknown", buf_len);
-            break;
-        default:
-            UNREACHABLE();
-        }
-        CONCAT(buf, " status-icon'></div>", buf_len);
-        break;
-    default:
-        UNREACHABLE();
-    }
+    if(widget->html_generator)
+        widget->html_generator(widget, &buf, &buf_len);
 
     CONCAT(buf, "</div></div>", buf_len);
 }
 
+static void generate_service_widget(const widget_t* widget, char** buf, size_t* buf_len)
+{
+    CONCAT_ALL(*buf, *buf_len,
+        "<div class='service-status-labels'>"
+            "<label>cpu time:</label>"
+            "<b>0 ms</b>"
+            "<label>memory:</label>"
+            "<b>0 B</b>"
+        "</div>"
+        "<div class='", service_status_css_class[widget->content.service.status], " status-icon'></div>"
+    );
+}
+
+static void generate_label_widget(const widget_t* widget, char** buf, size_t* buf_len)
+{
+    CONCAT(*buf, "<div class='widget-label-container'><label class='widget-label'>", *buf_len);
+    CONCAT(*buf, widget->content.label.buffer, *buf_len);
+    CONCAT(*buf, "</label></div>", *buf_len);
+}
+
 extern void start(void) {
-    static char html_buf[1024 * LEN(widgets)];
+    static char html_buf[HTML_BUFSIZ];
     
     for(widget_class_t wclass = WCLASS_GENERIC; wclass < __WCLASS_NUM; wclass++)
     {

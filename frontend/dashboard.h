@@ -11,12 +11,24 @@
 #define LEN(arr) (sizeof((arr)) / sizeof((arr)[0]))
 
 #define JS_STR(str) (str), (strlen((str)))
-#define const_JS_STR(str) (str), (LEN(str) - 1)
-
+#define const_JS_STR(str) (str), (LEN((str)) - 1)
 
 #define UNREACHABLE() __builtin_unreachable()
 
-#define API_RESPONSE_BUFFER_SIZE 8192
+#define CONCAT(buf, str, buf_len) do {              \
+        char* s = stpncpy((buf), (str), (buf_len)); \
+        (buf_len) -= s - (buf);                     \
+        (buf) = s;                                  \
+    } while(0)
+
+#define CONCAT_ALL(buf, buf_len, ...) do {          \
+        const char* const strs[] = { __VA_ARGS__ }; \
+        for(size_t i = 0; i < LEN(strs); i++)       \
+            CONCAT(buf, strs[i], buf_len);          \
+    } while(0)
+
+#define HTML_BUFSIZ 8192
+#define LABEL_BUFSIZ 32
 
 // error values
 #define E_SUCCESS 0
@@ -43,26 +55,37 @@ typedef struct service {
     enum : uint8_t {
         SERVICE_STATUS_UNKNOWN,
         SERVICE_STATUS_UP,
-        SERVICE_STATUS_DOWN
+        SERVICE_STATUS_DOWN,
+        __SERVICE_STATUS_NUM
     } status;
 } service_t;
 
-typedef struct widget {
+typedef struct graph {
+    uint8_t resolution;
+} graph_t;
+
+typedef struct label {
+    char buffer[LABEL_BUFSIZ];
+} label_t;
+
+typedef struct widget widget_t;
+
+typedef void (*html_generator_function_t)(const widget_t* widget, char** buf, size_t* buf_len);
+
+struct widget {
     const char* title;
     const char* html_id;
 
     widget_class_t class;
+ 
+    html_generator_function_t html_generator;
     content_type_t content_type;
     union {
-        struct {
-
-        } content_graph;
-        struct {
-            const char* label; 
-        } content_label;
-        service_t content_service;
-    };
-} widget_t;
+        graph_t graph;
+        label_t label;
+        service_t service;
+    } content;
+};
 
 // JS callbacks
 extern int set_inner_html(const char* restrict element_id, size_t element_id_len, const char* restrict html, size_t html_len);

@@ -22,9 +22,6 @@ const errorCodes = [
 ];
 
 class Dashboard {
-    constructor() {
-    }
-
     async start(wasm_file) {
         if(this.wasm !== undefined)
             throw new Error('DASHBOARD ALREADY STARTED.');
@@ -52,9 +49,7 @@ class Dashboard {
 
     async api_request(endpointPtr, endpointLen, responseBufferPtr, responseBufferLen) {
         const buffer = this.wasm.instance.exports.memory.buffer;
-
         const endpoint = decodeCStr(buffer, endpointPtr, endpointLen);
-        console.log(endpoint);
 
         try {
             const response = await fetch(endpoint, { method: 'GET', cache: 'no-cache', redirect: 'follow' });
@@ -65,7 +60,6 @@ class Dashboard {
             const reader = new FileReader();
             reader.onload = () => {
                 const srcBuffer = new Uint8Array(reader.result, 0, Math.min(responseBufferLen, content.size));
-                console.log(srcBuffer.length);
                 const destBuffer = new Uint8Array(buffer, responseBufferPtr, responseBufferLen);
                 destBuffer.set(srcBuffer);
             }

@@ -19,6 +19,7 @@
 
 body {
     font-family: Roboto;
+    font-size: 1em;
 }
 
 #background {
@@ -143,4 +144,21 @@ body {
 
 .status-unknown {
     background-color: var(--service-unknown);
+}
+
+.widget-label-container {
+    margin-top: 5px;
+    padding-top: 5px;
+    padding-left: 10px;
+
+    border-left-color: var(--separator-color);
+    border-left-style: solid;
+    border-left-width: 2px;
+}
+
+.widget-label {
+    color: var(--grey-text-color);
+    font-family: Roboto Mono;
+    font-weight: 600;
+    font-size: 1.5em;
 }
