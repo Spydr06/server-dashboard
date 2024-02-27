@@ -11,10 +11,14 @@ const makeEnv = (env) => new Proxy(env, {
     }
 });
 
-const widgetClasses = [
-    { cssClass: 'widget-generic', container: 'generic-widget-container' },
-    { cssClass: 'widget-quicksetting', container: 'quicksetting-widget-container' },
-    { cssClass: 'widget-service', container: 'service-widget-container' },
+const E_SUCCESS = 0;
+const E_404 = 1;
+const E_NULL = 2;
+
+const errorCodes = [
+    'Success',
+    '404 Response',
+    '(null)'
 ];
 
 class Dashboard {
@@ -26,35 +30,62 @@ class Dashboard {
             throw new Error('DASHBOARD ALREADY STARTED.');
         this.wasm = await WebAssembly.instantiateStreaming(fetch(wasm_file), { env: makeEnv(this) });
         this.wasm.instance.exports.start();
+        this.update();
         return this;
     }
 
-    newWidgetElement(id, title, widgetClass) {
-        let el = document.createElement('div');
-        el.classList.add('widget');
-        el.classList.add(widgetClasses[widgetClass].cssClass);
-        el.id = `widget-${id}`;
-        el.innerHTML = `<b class='widget-title'>${title}</b><div id='widget-content-${id}' class='widget-content ${widgetClasses[widgetClass].cssClass}-content'></div>`;
-        return el;
+    update() {
+        const err = this.wasm.instance.exports.update();
+        if(err !== 0)
+            console.log(`Error updating: ${errorCodes[err]} (${err})`);
     }
 
-    create_widget(id, titlePtr, titleLen, widgetClass) {
-        const buffer = this.wasm.instance.exports.memory.buffer; 
-        document.getElementById(widgetClasses[widgetClass].container).appendChild(this.newWidgetElement(id, decodeCStr(buffer, titlePtr, titleLen), widgetClass))
-    }
-
-    update_widget_content(id, htmlPtr, htmlLen) {
-        const content = document.getElementById(`widget-content-${id}`);
-        if(content === null)
-            throw new Error(`No widget with id ${id}.`);
-
+    set_inner_html(elementIdPtr, elementIdLen, htmlPtr, htmlLen) {
         const buffer = this.wasm.instance.exports.memory.buffer;
+        
+        const content = document.getElementById(decodeCStr(buffer, elementIdPtr, elementIdLen));
+        if(content === null)
+            return E_NULL;
+
         content.innerHTML = decodeCStr(buffer, htmlPtr, htmlLen);
     }
+
+    async api_request(endpointPtr, endpointLen, responseBufferPtr, responseBufferLen) {
+        const buffer = this.wasm.instance.exports.memory.buffer;
+
+        const endpoint = decodeCStr(buffer, endpointPtr, endpointLen);
+        console.log(endpoint);
+
+        try {
+            const response = await fetch(endpoint, { method: 'GET', cache: 'no-cache', redirect: 'follow' });
+            if(!response.ok)
+                return E_404;
+            const content = await response.blob();
+            
+            const reader = new FileReader();
+            reader.onload = () => {
+                const srcBuffer = new Uint8Array(reader.result, 0, Math.min(responseBufferLen, content.size));
+                console.log(srcBuffer.length);
+                const destBuffer = new Uint8Array(buffer, responseBufferPtr, responseBufferLen);
+                destBuffer.set(srcBuffer);
+            }
+
+            await reader.readAsArrayBuffer(content);
+            return E_SUCCESS;
+        }
+        catch(error) {
+            throw new Error(`GET ${endpoint}: ${error}`);
+            return E_404;
+        }
+    }
 }
+
+const updateInterval = 1000;
 
 window.onload = async () => {
     const dashboard = await new Dashboard()
         .start('dashboard.wasm');
+
+    setInterval(() => dashboard.update(), updateInterval);
 };
 

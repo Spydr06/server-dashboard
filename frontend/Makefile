@@ -2,7 +2,7 @@ WASM_BIN := dashboard.wasm
 WASM_SOURCES := $(shell find -name '*.c')
 WASM_CC ?= clang
 
-CFLAGS += --target=wasm32 -Wall -Wextra -MMD -MP --no-standard-libraries -ffreestanding -Wl,--export-table,--no-entry,--allow-undefined,--export=start -O3
+CFLAGS += --target=wasm32 -Wall -Wextra -MMD -MP --no-standard-libraries -ffreestanding -Wl,--export-table,--no-entry,--allow-undefined,--export=start,--export=update -O3
 
 .PHONY:
 all: $(WASM_BIN)

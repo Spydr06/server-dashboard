@@ -2,6 +2,7 @@
 #include "encoding.h"
 #include "mime.h"
 
+#include <asm-generic/socket.h>
 #include <assert.h>
 #include <string.h>
 #include <errno.h>
@@ -50,11 +51,15 @@ server_t* server_init(int port, const char* root) {
         goto fail;
     }
 
+    int ret;
+    if((ret = setsockopt(server->fd, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int))) < 0) {
+        fprintf(stderr, "setsockopt(SO_REUSEADDR) failed: %s\n", strerror(-ret));
+    }
+
     server->addr.sin_family = AF_INET;
     server->addr.sin_addr.s_addr = INADDR_ANY;
     server->addr.sin_port = htons(port);
 
-    int ret;
     if((ret = bind(server->fd, (struct sockaddr *) &server->addr, sizeof server->addr)) < 0) {
         fprintf(stderr, "Failed to bind the socket: %s\n", strerror(-ret));
         goto fail;
